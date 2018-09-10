@@ -5,6 +5,7 @@
     color: whitesmoke;
     background-color: red;
     text-align: center;
+    cursor: pointer;
 }
 
 .switch.switch--enabled {

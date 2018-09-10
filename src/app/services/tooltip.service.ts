@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { defaults, has, get, defaultsDeep } from 'lodash';
 import { timeout } from 'q';
+import _ = require('lodash');
 
 interface TooltipOptions {
   content?: string,
@@ -34,10 +35,10 @@ export class BorderBox {
 class Tooltip {
   private body;
   private tooltip;
-  private variation: string[];
   private options: TooltipOptions;
   private classNames: string[];
-  private animationStart: number;
+  private canShow: boolean;
+  private canHide: boolean;
   private static _defaults = {
     className: 'tooltip',
     animation: {
@@ -49,7 +50,7 @@ class Tooltip {
       }
     }
   }
-
+  isTooltipVisible: boolean;
 
   constructor(options: TooltipOptions) {
     this.options = defaultsDeep({}, options, Tooltip._defaults);
@@ -57,6 +58,8 @@ class Tooltip {
     this.tooltip = document.createElement('div');
     this.classNames = [];
     this.tooltip.className = this.className;
+    this.canShow = true;
+    this.canHide = false;
   }
 
   get className() {
@@ -86,64 +89,54 @@ class Tooltip {
     }
   }
 
-  private _calcTooltipPosition() {
-
-  }
-
   private _setClassName() {
     this.tooltip.className = this.className;
   }
 
   show() {
-    const { options, options: { animation } } = this;
-
-    if (this._waitUntilAnimationEnd(() => this.show(), 100)) {
-      return;
-    }
-
     this.tooltip.innerHTML = this._tooltipBody();
     this.body.appendChild(this.tooltip);
-
-    this._addClass(animation.states.enter);
-    this._addClass(animation.states.animate);
-    setTimeout(() => {
-      this._addClass(animation.states.enter + '-active');
-    });
-    setTimeout(() => {
-      this._removeClass(animation.states.animate);
-      this._removeClass(animation.states.enter);
-      this._removeClass(animation.states.enter + '-active');
-    }, this.options.animation.duration);
-    this.animationStart = Date.now();
+    this._setEneterClasses()
   }
 
   hide() {
-    const { options, options: { animation } } = this;
+    this._setLeaveClasses()
+      .then(() => this.body.removeChild(this.tooltip))
+      .catch((e) => { });
+  }
 
-    if (this._waitUntilAnimationEnd(() => this.hide(), 100)) {
-      return;
-    }
-    this._addClass(animation.states.leave);
-    setTimeout(() => {
+  _setEneterClasses(): Promise<void> {
+    const { options: { animation } } = this;
+    return new Promise((resolve) => {
       this._addClass(animation.states.animate);
-      this._addClass(animation.states.leave + '-active');
+      this._addClass(animation.states.enter);
+      setTimeout(() => {
+        this._addClass(animation.states.enter + '-active');
+        setTimeout(() => {
+          this._removeClass(animation.states.animate);
+          this._removeClass(animation.states.enter);
+          this._removeClass(animation.states.enter + '-active');
+          resolve();
+        }, animation.duration);
+      });
     });
-    setTimeout(() => {
-      this._removeClass(animation.states.animate);
-      this._removeClass(animation.states.leave);
-      this._removeClass(animation.states.leave + '-active');
-      this.body.removeChild(this.tooltip);
-    }, this.options.animation.duration);
   }
-
-  _waitUntilAnimationEnd(fun: () => void, interval: number) {
-    if (this.classNames.indexOf(this.options.animation.states.animate) !== -1) {
-      setTimeout(fun(), Math.max(interval));
-      return true;
-    }
-    return false;
+  _setLeaveClasses(): Promise<void> {
+    const { options: { animation } } = this;
+    return new Promise((resolve) => {
+      this._addClass(animation.states.leave);
+      this._addClass(animation.states.animate);
+      setTimeout(() => {
+        this._addClass(animation.states.leave + '-active');
+        setTimeout(() => {
+          this._removeClass(animation.states.animate);
+          this._removeClass(animation.states.leave);
+          this._removeClass(animation.states.leave + '-active');
+          resolve();
+        }, animation.duration);
+      });
+    });
   }
-
 }
 
 @Injectable({
@@ -151,35 +144,41 @@ class Tooltip {
 })
 export class TooltipService {
   private _tooltip: Tooltip;
+  show: () => void;
+  hide: () => void;
   constructor() {
     this._tooltip = new Tooltip({
       content: 'Init content',
       target: '.target',
-      html: `<table>
-        <tbody>
-          <tr>
-            <td>qwe</td>
-            <td>qwe1</td>
-            <td>qwe2</td>
-          </tr>
-          <tr>
-            <td>qwe</td>
-            <td>qwe1</td>
-            <td>qwe2</td>
-          </tr>
-        </tbody>
-      </table>`,
+      html: content,
       animation: {
         duration: 500,
       }
     });
-  }
 
-  show() {
-    this._tooltip.show();
+    const show = () => this._tooltip.show();
+    this.show = _.throttle(show, 1000);
+    const hide = () => this._tooltip.hide();
+    this.hide = _.debounce(hide, 1000);
   }
+  // test = () => console.log('debounce');
+  // deb = _.throttle(this.test, 1000);
 
-  hide() {
-    this._tooltip.hide();
-  }
+
+
 }
+
+const content = `<table>
+<tbody>
+  <tr>
+    <td>qwe</td>
+    <td>qwe1</td>
+    <td>qwe2</td>
+  </tr>
+  <tr>
+    <td>qwe</td>
+    <td>qwe1</td>
+    <td>qwe2</td>
+  </tr>
+</tbody>
+</table>`;
