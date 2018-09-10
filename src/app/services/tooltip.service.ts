@@ -100,7 +100,7 @@ class Tooltip {
     if (this._waitUntilAnimationEnd(() => this.show(), 100)) {
       return;
     }
-    
+
     this.tooltip.innerHTML = this._tooltipBody();
     this.body.appendChild(this.tooltip);
 
