@@ -1,0 +1,12 @@
+<fieldset>
+  <legend>Tooltip settings</legend>
+  <label>Header <input type="text" /></label>
+  <label>Content <input type="text" /></label>
+  <div class="switch"
+       [ngClass]="{'switch--enabled': isTooltipEnabled}"
+       (click)="toggleTooltip()">{{isTooltipEnabled?'ON':'OFF'}}</div>
+</fieldset>
+
+
+
+<app-target></app-target>

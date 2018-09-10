@@ -1,0 +1,10 @@
+.target {
+    background-color: darkcyan;
+    display: inline-block;
+    padding: 15px;
+    border-radius: 5px;
+    color: whitesmoke;
+    font-weight: bold;
+    position: absolute;
+    cursor: pointer;
+}

@@ -1,0 +1,12 @@
+.switch {
+    width: 30px;
+    padding: 5px;
+    border-radius: 3px;
+    color: whitesmoke;
+    background-color: red;
+    text-align: center;
+}
+
+.switch.switch--enabled {
+    background-color: green;
+}
