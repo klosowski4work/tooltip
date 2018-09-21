@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
-import { defaults, has, get, defaultsDeep } from 'lodash';
-import { timeout } from 'q';
-import _ = require('lodash');
+import { has, defaultsDeep, delay } from 'lodash';
 
+const ElementNotFoundException = {};
 interface TooltipOptions {
   content?: string,
   target?: string,
@@ -19,8 +18,6 @@ interface TooltipOptions {
     }
   },
 }
-
-
 export class BorderBox {
   x1: number;
   x2: number;
@@ -34,11 +31,10 @@ export class BorderBox {
 
 class Tooltip {
   private body;
-  private tooltip;
+  private tooltipElement: HTMLElement;
+  private targetElement: HTMLElement;
   private options: TooltipOptions;
   private classNames: string[];
-  private canShow: boolean;
-  private canHide: boolean;
   private static _defaults = {
     className: 'tooltip',
     animation: {
@@ -55,22 +51,31 @@ class Tooltip {
   constructor(options: TooltipOptions) {
     this.options = defaultsDeep({}, options, Tooltip._defaults);
     this.body = document.body;
-    this.tooltip = document.createElement('div');
     this.classNames = [];
-    this.tooltip.className = this.className;
-    this.canShow = true;
-    this.canHide = false;
+    this._initElement();
+    this.setTarget(options.target);
+    this.isTooltipVisible = false;
   }
 
   get className() {
     const classNameBase = this.options.className;
     return `${classNameBase} ${this.classNames.join(' ')}`;
   }
+
+  setTarget(target: string) {
+    this.targetElement = document.querySelector(target);
+  }
+
   private _addClass(className: string) {
     if (this.classNames.indexOf(className) === -1) {
       this.classNames.push(className);
     }
     this._setClassName();
+  }
+
+  private _initElement() {
+    this.tooltipElement = document.createElement('div');
+    this.tooltipElement.className = this.className;
   }
 
   private _removeClass(className: string) {
@@ -90,26 +95,66 @@ class Tooltip {
   }
 
   private _setClassName() {
-    this.tooltip.className = this.className;
+    this.tooltipElement.className = this.className;
   }
 
   show() {
-    this.tooltip.innerHTML = this._tooltipBody();
-    this.body.appendChild(this.tooltip);
-    this._setEneterClasses()
+    if (!this.isTooltipVisible) {
+      this.tooltipElement.innerHTML = this._tooltipBody();
+      this._setClassName();
+      this.body.appendChild(this.tooltipElement);
+      this._updatePosition();
+      this._setEnterClasses()
+        .then(() => this._trackTooltip());
+    }
   }
 
   hide() {
-    this._setLeaveClasses()
-      .then(() => this.body.removeChild(this.tooltip))
-      .catch((e) => { });
+    if (this.isTooltipVisible) {
+      this.isTooltipVisible = false;
+      this._setLeaveClasses()
+        .then(() => this.body.removeChild(this.tooltipElement))
+        .catch((e) => { });
+    } else {
+      delay(() => this.hide(), 100);
+    }
   }
 
-  _setEneterClasses(): Promise<void> {
+  private _updatePosition() {
+    const targetBB = this.targetElement.getBoundingClientRect();
+    const tooltipBB = this.tooltipElement.getBoundingClientRect();
+    // this.tooltipElement.style.transform = `translate(${targetBB.left}px, ${targetBB.top - (targetBB.height / 2 + tooltipBB.height / 2)}px)`;
+    this.tooltipElement.style.top = `${targetBB.top - tooltipBB.height }px`;
+    this.tooltipElement.style.left = `${targetBB.left}px`;
+    console.log('targetBB',targetBB);
+    console.log('tooltipBB',tooltipBB);
+  }
+
+  private _trackTooltip() {
+    this.isTooltipVisible = true;
+    const tick = () => {
+      window.requestAnimationFrame(() => {
+        if (!this.isTooltipVisible) {
+          return;
+        }
+        tick();
+        try {
+          this._updatePosition();
+        } catch (e) {
+          if (e !== ElementNotFoundException) {
+            throw e;
+          }
+        }
+      });
+    };
+    tick();
+  }
+
+  private _setEnterClasses(): Promise<void> {
     const { options: { animation } } = this;
     return new Promise((resolve) => {
-      this._addClass(animation.states.animate);
       this._addClass(animation.states.enter);
+      this._addClass(animation.states.animate);
       setTimeout(() => {
         this._addClass(animation.states.enter + '-active');
         setTimeout(() => {
@@ -121,7 +166,7 @@ class Tooltip {
       });
     });
   }
-  _setLeaveClasses(): Promise<void> {
+  private _setLeaveClasses(): Promise<void> {
     const { options: { animation } } = this;
     return new Promise((resolve) => {
       this._addClass(animation.states.leave);
@@ -147,25 +192,19 @@ export class TooltipService {
   show: () => void;
   hide: () => void;
   constructor() {
-    this._tooltip = new Tooltip({
-      content: 'Init content',
-      target: '.target',
-      html: content,
-      animation: {
-        duration: 500,
-      }
-    });
-
-    const show = () => this._tooltip.show();
-    this.show = _.throttle(show, 1000);
-    const hide = () => this._tooltip.hide();
-    this.hide = _.debounce(hide, 1000);
+    this.show = () => {
+      this._tooltip = new Tooltip({
+        content: 'Init content',
+        target: '.target',
+        // html: content,
+        animation: {
+          duration: 200,
+        }
+      });
+      this._tooltip.show();
+    }
+    this.hide = () => this._tooltip.hide();
   }
-  // test = () => console.log('debounce');
-  // deb = _.throttle(this.test, 1000);
-
-
-
 }
 
 const content = `<table>

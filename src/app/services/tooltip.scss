@@ -1,0 +1,33 @@
+$animation-duration: 0.2s;
+.tooltip {
+    position: absolute;
+    min-width: 100px;
+    min-height: 20px;
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    // top: 0px;
+    position: absolute;
+    &.animate {
+        &.enter {
+            opacity: 0;
+        }
+        &.enter.enter-active {
+            animation: fade-in-top ease-out $animation-duration;
+        }
+        &.leave.leave-active {
+            animation: fade-in-top reverse ease-out $animation-duration;
+        }
+    }
+}
+
+@keyframes fade-in-top {
+    from {
+        opacity: 0; // top: 20px; 
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0); // top: 0;
+    }
+}
