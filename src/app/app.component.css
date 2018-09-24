@@ -11,3 +11,12 @@
 .switch.switch--enabled {
     background-color: green;
 }
+
+#container {
+    border: 1px solid brown;
+    position: relative;
+    width: 400px;
+    height: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+}

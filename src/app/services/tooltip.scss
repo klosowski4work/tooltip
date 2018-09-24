@@ -3,31 +3,85 @@ $animation-duration: 0.2s;
     position: absolute;
     min-width: 100px;
     min-height: 20px;
-    padding: 5px;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    // top: 0px;
-    position: absolute;
-    &.animate {
-        &.enter {
-            opacity: 0;
+    &__body {
+        padding: 5px;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white; // top: 0px;
+    }
+    &__tongue {
+        position: absolute;
+        fill: blue;
+        svg {
+            position: absolute;
         }
-        &.enter.enter-active {
-            animation: fade-in-top ease-out $animation-duration;
+    }
+    $positions: top right bottom left;
+    $degrees: 0;
+    @each $pos in $positions {
+        &--#{$pos} & {
+            &__tongue {
+                svg {
+                    transform: translate3d(-50%, -50%, 0) rotateZ(#{$degrees}deg);
+                }
+            }
         }
-        &.leave.leave-active {
-            animation: fade-in-top reverse ease-out $animation-duration;
+        &--#{$pos}.animate {
+            pointer-events: none;
+            &.enter {
+                opacity: 0;
+            }
+            &.enter.enter-active {
+                animation: fade-in-#{$pos} ease-out $animation-duration;
+            }
+            &.leave.leave-active {
+                animation: fade-in-#{$pos} reverse ease-out $animation-duration;
+            }
         }
+        $degrees: $degrees+90;
     }
 }
 
+$animation-translate: 20px;
 @keyframes fade-in-top {
     from {
         opacity: 0; // top: 20px; 
-        transform: translateY(20px);
+        transform: translateY($animation-translate);
     }
     to {
         opacity: 1;
         transform: translateY(0); // top: 0;
+    }
+}
+
+@keyframes fade-in-bottom {
+    from {
+        opacity: 0;
+        transform: translateY(-$animation-translate);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-in-left {
+    from {
+        opacity: 0;
+        transform: translateX($animation-translate);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fade-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(-$animation-translate);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
     }
 }
