@@ -48,6 +48,7 @@ enum TooltipPositions {
   Bottom = 'bottom',
   Right = 'right',
   Left = 'left',
+  None = 'none',
   Auto = 'auto'
 }
 
@@ -88,12 +89,12 @@ interface TooltipOptions {
     }
   },
 }
-
+const TooltipPositionException = {};
 class Tooltip {
   private body;
   private tooltipElement: HTMLElement;
   private targetElement: HTMLElement;
-  private tongueElement: HTMLElement;
+  private arrowElement: HTMLElement;
   private tooltipBodyElement: HTMLElement;
   private containerElement: HTMLElement;
   private options: TooltipOptions;
@@ -111,13 +112,13 @@ class Tooltip {
     },
     position: TooltipPositions,
     tooltip: {
-      margin: 0,
       position: TooltipPositions.Auto,
       style: {
-        borderColor: 'transparent',
-        borderWidth: '1px',
+        margin: 0,
+        borderColor: '',
+        borderWidth: '',
         borderStyle: 'solid',
-        backgroundColor: '#000000',
+        backgroundColor: '',
       },
     },
     arrow: {
@@ -188,7 +189,7 @@ class Tooltip {
   private _getTemplate() {
     return `<div class="${this.options.className}__body">
     </div>
-    <div class="${this.options.className}__tongue">
+    <div class="${this.options.className}__arrow">
       ${this._getTongue()}
     </div>
     `
@@ -201,16 +202,10 @@ class Tooltip {
     return `
     <svg width="${size + borderSize}" height="${size + borderSize}"
       viewBox = "0 0 ${size} ${size}">
-      <path d="M0 ${halfSize} L${halfSize} ${size} L${size} ${halfSize}" fill="red"/>
-      </svg>`
+      <path d="M0 ${halfSize} L${halfSize} ${size} L${size} ${halfSize}" fill="${borderColor}"/>
+      <path d="M0 ${halfSize} L${halfSize} ${size} L${size} ${halfSize}" fill="${backgroundColor}" style="transform: translateY(-${borderSize}px)"/>
+    </svg>`
   }
-
-  // <line stroke="${backgroundColor}"
-  // x1="0" y1="${halfSize - 2 * borderSize}" 
-  // x2="${size}" y2="${halfSize - 2 * borderSize}" stroke-width="${borderSize}" />
-
-  // <polyline points="0,${halfSize} ${halfSize},${size} ${size},${halfSize}" 
-  // style="fill:${backgroundColor}; stroke:${borderColor}; transform: translateY(-${half(borderSize)}px); stroke-width:${borderSize}" />
 
   private _updateStyle(element: HTMLElement, style: any) {
     Object.keys(style).forEach((property) => {
@@ -222,7 +217,7 @@ class Tooltip {
     this.tooltipElement = document.createElement('div');
     this.tooltipElement.innerHTML = this._getTemplate();
     this.tooltipElement.className = this.className;
-    this.tongueElement = this.tooltipElement.querySelector(`.${this.options.className}__tongue`);
+    this.arrowElement = this.tooltipElement.querySelector(`.${this.options.className}__arrow`);
     this.tooltipBodyElement = this.tooltipElement.querySelector(`.${this.options.className}__body`);
     this._updateStyle(this.tooltipBodyElement, this.options.tooltip.style);
   }
@@ -272,9 +267,16 @@ class Tooltip {
     const newPos = this._calcPosition();
     this.tooltipElement.style.top = `${newPos.y}px`;
     this.tooltipElement.style.left = `${newPos.x}px`;
-    const tonguePos = this._calcTonguePosition();
-    this.tongueElement.style.top = `${tonguePos.top}px`;
-    this.tongueElement.style.left = `${tonguePos.left}px`;
+    try {
+      const arrowPos = this._calcTonguePosition();
+      this.arrowElement.style.top = `${arrowPos.top}px`;
+      this.arrowElement.style.left = `${arrowPos.left}px`;
+      this.arrowElement.style.display = '';
+    } catch (e) {
+      if (e === TooltipPositionException) {
+        this.arrowElement.style.display = 'none';
+      }
+    }
     this._setClassName();
   }
 
@@ -282,8 +284,8 @@ class Tooltip {
     const tooltipBR = getBoundingRect(this.tooltipElement);
     const targetBR = getBoundingRect(this.targetElement);
     const marginTooltip = parseInt(this.options.tooltip.style.margin);
-    const { marginCorner, size: tongueSize } = this.options.arrow;
-    const marginTongue = marginCorner + marginTooltip + half(tongueSize);
+    const { marginCorner, size: arrowSize } = this.options.arrow;
+    const marginTongue = marginCorner + marginTooltip + half(arrowSize);
     switch (this.tooltipPosition) {
       case TooltipPositions.Bottom:
         return {
@@ -305,6 +307,9 @@ class Tooltip {
           top: clamp(tooltipBR.height - (tooltipBR.y2 - targetBR.cy), marginTongue, tooltipBR.height - marginTongue),
           left: marginTooltip,
         }
+      default: {
+        throw TooltipPositionException;
+      }
     }
   }
 
@@ -348,7 +353,7 @@ class Tooltip {
       newPos = {
         x: targetBR.cx - half(tooltipBR.width),
         y: targetBR.y1 - tooltipBR.height,
-        pos: TooltipPositions.Top,
+        pos: TooltipPositions.None,
       }
     }
     this.tooltipPosition = newPos.pos;
@@ -482,12 +487,12 @@ export class TooltipService {
             margin: '15px',
             borderRadius: '5px',
             borderColor: 'red',
-            borderWidth: '4px',
+            borderWidth: '2px',
           }
         },
         arrow: {
-          size: 20,
-          marginCorner: 6,
+          size: 12,
+          marginCorner: 12,
         },
         track: true,
       });

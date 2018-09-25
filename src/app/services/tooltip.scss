@@ -5,24 +5,32 @@ $animation-duration: 0.2s;
     min-height: 20px;
     &__body {
         padding: 5px;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: white; // top: 0px;
+        background-color: #000000;
+        color: white;
     }
-    &__tongue {
+    &__arrow {
         position: absolute;
-        fill: blue;
+        fill: #000000;
         svg {
             position: absolute;
         }
     }
-    &--outside{
-        opacity: 0.3;
+    &--outside {
+        pointer-events: none;
+        visibility: hidden;
+        &__arrow {
+            visibility: hidden;
+        }
     }
-    $positions: top right bottom left;
+    $positions: top right bottom left none;
     $degrees: 0;
+    &.animate {
+        animation-duration: $animation-duration;
+        animation-timing-function: ease-out;
+    }
     @each $pos in $positions {
         &--#{$pos} & {
-            &__tongue {
+            &__arrow {
                 svg {
                     transform: translate3d(-50%, -50%, 0) rotateZ(#{$degrees}deg);
                 }
@@ -34,25 +42,31 @@ $animation-duration: 0.2s;
                 opacity: 0;
             }
             &.enter.enter-active {
-                animation: fade-in-#{$pos} ease-out $animation-duration;
+                animation-name: fade-in-#{$pos};
             }
             &.leave.leave-active {
-                animation: fade-in-#{$pos} reverse ease-out $animation-duration;
+                animation-name: fade-in-#{$pos};
+                animation-direction: reverse;
             }
         }
         $degrees: $degrees+90;
+    }
+    &--none {
+        &__arrow {
+            visibility: hidden;
+        }
     }
 }
 
 $animation-translate: 20px;
 @keyframes fade-in-top {
     from {
-        opacity: 0; // top: 20px; 
+        opacity: 0;
         transform: translateY($animation-translate);
     }
     to {
         opacity: 1;
-        transform: translateY(0); // top: 0;
+        transform: translateY(0);
     }
 }
 
@@ -86,6 +100,15 @@ $animation-translate: 20px;
     to {
         opacity: 1;
         transform: translateX(0);
+    }
+}
+
+@keyframes fade-in-none {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }
 
