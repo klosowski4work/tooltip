@@ -15,6 +15,9 @@ $animation-duration: 0.2s;
             position: absolute;
         }
     }
+    &--outside{
+        opacity: 0.3;
+    }
     $positions: top right bottom left;
     $degrees: 0;
     @each $pos in $positions {
@@ -84,4 +87,11 @@ $animation-translate: 20px;
         opacity: 1;
         transform: translateX(0);
     }
+}
+
+#debug-element-container {
+    opacity: 0.3;
+    border: 1px solid #FF7560;
+    position: absolute;
+    pointer-events: none;
 }

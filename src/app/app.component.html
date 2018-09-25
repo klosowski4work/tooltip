@@ -1,7 +1,10 @@
 <fieldset>
   <legend>Tooltip settings</legend>
   <label>Header <input type="text" /></label>
-  <label>Content <input type="text" /></label>
+  <label>Content <textarea name="content"
+              style="width: 600px; height: 100px;"
+              [(ngModel)]="content">
+    </textarea></label>
   <div class="switch"
        [ngClass]="{'switch--enabled': isTooltipEnabled}"
        (click)="toggleTooltip()">{{isTooltipEnabled?'ON':'OFF'}}</div>

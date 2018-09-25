@@ -8,18 +8,39 @@ import { TooltipService } from './services/tooltip.service';
 })
 export class AppComponent {
   @Input() public isTooltipEnabled: boolean;
+  @Input() public content: string;
 
   constructor(private tooltipService: TooltipService) {
     this.isTooltipEnabled = false;
+    this.content =CONTENT;
   }
   title = 'app';
 
   toggleTooltip() {
     this.isTooltipEnabled = !this.isTooltipEnabled;
     if (this.isTooltipEnabled) {
-      this.tooltipService.show();
+      this.tooltipService.show(this.content);
     } else {
       this.tooltipService.hide();
     }
   }
 }
+
+const CONTENT = `
+<table>
+  <tbody>
+  <tr>
+    <td>Any</td><td>content</td><td>available</td>
+  </tr>
+  <tr>
+    <td>qwe</td><td>qwe1</td><td>qwe2</td>
+  </tr>
+  <tr>
+    <td>qwe</td><td>qwe1</td><td>qwe2</td>
+  </tr>
+  <tr>
+    <td>qwe</td><td>qwe1</td><td>qwe2</td>
+  </tr>
+  </tbody>
+</table>
+`

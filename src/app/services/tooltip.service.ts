@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { has, defaultsDeep, delay } from 'lodash';
+import { isNull } from 'util';
 
 const ElementNotFoundException = {};
-
+const DEV = true;
 function half(value: number) {
   return Math.round(value / 2);
 }
@@ -22,15 +23,16 @@ export class BoundingRect {
 
 function getBoundingRect(element: HTMLElement): BoundingRect {
   const boundingRect = element.getBoundingClientRect();
+  const { pageYOffset: yScroll, pageXOffset: xScroll } = window;
   return {
-    x1: boundingRect.left,
-    x2: boundingRect.right,
-    y1: boundingRect.top,
-    y2: boundingRect.bottom,
+    x1: boundingRect.left + xScroll,
+    x2: boundingRect.right + xScroll,
+    y1: boundingRect.top + yScroll,
+    y2: boundingRect.bottom + yScroll,
     width: boundingRect.width,
     height: boundingRect.height,
-    cx: boundingRect.left + half(boundingRect.width),
-    cy: boundingRect.top + half(boundingRect.height)
+    cx: boundingRect.left + xScroll + half(boundingRect.width),
+    cy: boundingRect.top + yScroll + half(boundingRect.height)
   }
 }
 
@@ -54,6 +56,7 @@ interface TooltipOptions {
   },
   tooltip?: {
     margin?: number,
+    position?: TooltipPositions,
   },
   arrow?: {
     size?: number,
@@ -96,6 +99,7 @@ class Tooltip {
     position: TooltipPositions,
     tooltip: {
       margin: 0,
+      position: TooltipPositions.Auto,
     },
     arrow: {
       size: 10,
@@ -294,31 +298,43 @@ class Tooltip {
     const tooltipBR = getBoundingRect(this.tooltipElement);
     const targetBR = getBoundingRect(this.targetElement);
     const containerBR = this._getContainerBoundingRect();
+    const offset = this.options.tooltip.margin + this.options.arrow.size + this.options.arrow.marginCorner * 2;
+
     let newPos;
 
-    if (this._hasSpace(TooltipPositions.Top)) {
+    if (this._hasSpace(TooltipPositions.Top) &&
+      (targetBR.x2 - offset > containerBR.x1 && targetBR.x1 + offset < containerBR.x2)) {
       newPos = {
         x: targetBR.cx - half(tooltipBR.width),
         y: targetBR.y1 - tooltipBR.height,
         pos: TooltipPositions.Top,
       }
-    } else if (this._hasSpace(TooltipPositions.Bottom)) {
+    } else if (this._hasSpace(TooltipPositions.Bottom) &&
+      (targetBR.x2 - offset > containerBR.x1 && targetBR.x1 + offset < containerBR.x2)) {
       newPos = {
         x: targetBR.cx - half(tooltipBR.width),
         y: targetBR.y2,
         pos: TooltipPositions.Bottom
       }
-    } else if (this._hasSpace(TooltipPositions.Right)) {
+    } else if (this._hasSpace(TooltipPositions.Right) &&
+      (targetBR.y2 - offset > containerBR.y1 && targetBR.y1 + offset < containerBR.y2)) {
       newPos = {
         x: targetBR.x2,
         y: targetBR.cy - half(tooltipBR.height),
         pos: TooltipPositions.Right
       }
-    } else if (this._hasSpace(TooltipPositions.Left)) {
+    } else if (this._hasSpace(TooltipPositions.Left) &&
+      (targetBR.y2 - offset > containerBR.y1 && targetBR.y1 + offset < containerBR.y2)) {
       newPos = {
         x: targetBR.x1 - tooltipBR.width,
         y: targetBR.cy - half(tooltipBR.height),
         pos: TooltipPositions.Left
+      }
+    } else {
+      newPos = {
+        x: targetBR.cx - half(tooltipBR.width),
+        y: targetBR.y1 - tooltipBR.height,
+        pos: TooltipPositions.Top,
       }
     }
     this.tooltipPosition = newPos.pos;
@@ -348,14 +364,25 @@ class Tooltip {
     const { container, tooltip, arrow } = this.options
     const containerBR = getBoundingRect(document.querySelector(container.selector));
     const marginInner = Math.max(arrow.size, container.marginInner) - tooltip.margin;
-
-    return {
+    const ret = {
       ...containerBR,
       x1: containerBR.x1 + marginInner,
       x2: containerBR.x2 - marginInner,
       y1: containerBR.y1 + marginInner,
       y2: containerBR.y2 - marginInner,
+      width: containerBR.x2 - containerBR.x1 - 2 * marginInner,
+      height: containerBR.y2 - containerBR.y1 - 2 * marginInner,
     }
+    if (DEV) {
+      let containerEl = document.getElementById('debug-element-container');
+      if (isNull(containerEl)) {
+        containerEl = document.createElement('div') as HTMLElement;
+        containerEl.id = 'debug-element-container';
+        containerEl.style.cssText = `top: ${ret.y1}px; left: ${ret.x1}px; width: ${ret.width}px; height: ${ret.height}px;`;
+        document.body.appendChild(containerEl);
+      }
+    }
+    return ret;
   }
 
   private _trackTooltip() {
@@ -420,10 +447,10 @@ class Tooltip {
 })
 export class TooltipService {
   private _tooltip: Tooltip;
-  show: () => void;
+  show: (content: string) => void;
   hide: () => void;
   constructor() {
-    this.show = () => {
+    this.show = (content: string) => {
       this._tooltip = new Tooltip({
         content: 'Init content',
         target: {
@@ -443,7 +470,7 @@ export class TooltipService {
           size: 12,
           marginCorner: 6,
         },
-        track: false,
+        track: true,
       });
       this._tooltip.show();
     }
@@ -451,17 +478,27 @@ export class TooltipService {
   }
 }
 
-const content = `<table>
-<tbody>
-  <tr>
-    <td>qwe</td>
-    <td>qwe1</td>
-    <td>qwe2</td>
-  </tr>
-  <tr>
-    <td>qwe</td>
-    <td>qwe1</td>
-    <td>qwe2</td>
-  </tr>
-</tbody>
-</table>`;
+// const content = `<table>
+// <tbody>
+// <tr>
+//   <td>qwe</td>
+//   <td>qwe1</td>
+//   <td>qwe2</td>
+// </tr>
+// <tr>
+//   <td>qwe</td>
+//   <td>qwe1</td>
+//   <td>qwe2</td>
+// </tr>
+// <tr>
+//   <td>qwe</td>
+//   <td>qwe1</td>
+//   <td>qwe2</td>
+// </tr>
+// <tr>
+//   <td>qwe</td>
+//   <td>qwe1</td>
+//   <td>qwe2</td>
+// </tr>
+// </tbody>
+// </table>`;
