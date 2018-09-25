@@ -12,7 +12,7 @@ export class AppComponent {
 
   constructor(private tooltipService: TooltipService) {
     this.isTooltipEnabled = false;
-    this.content =CONTENT;
+    this.content = CONTENT;
   }
   title = 'app';
 

@@ -4,12 +4,19 @@ import { isNull } from 'util';
 
 const ElementNotFoundException = {};
 const DEV = true;
+
 function half(value: number) {
   return Math.round(value / 2);
 }
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
+
+interface StyleCSS {
+  [key: string]: string | number;
+}
+
 export class BoundingRect {
   x1: number;
   x2: number;
@@ -55,8 +62,14 @@ interface TooltipOptions {
     marginInner?: number,
   },
   tooltip?: {
-    margin?: number,
     position?: TooltipPositions,
+    style?: StyleCSS & {
+      margin?: string,
+      borderColor?: string,
+      borderWidth?: string,
+      borderStyle?: string,
+      backgroundColor?: string,
+    },
   },
   arrow?: {
     size?: number,
@@ -100,6 +113,12 @@ class Tooltip {
     tooltip: {
       margin: 0,
       position: TooltipPositions.Auto,
+      style: {
+        borderColor: 'transparent',
+        borderWidth: '1px',
+        borderStyle: 'solid',
+        backgroundColor: '#000000',
+      },
     },
     arrow: {
       size: 10,
@@ -167,8 +186,7 @@ class Tooltip {
   }
 
   private _getTemplate() {
-    return `<div class="${this.options.className}__body"
-      ${this._getStyle()}>
+    return `<div class="${this.options.className}__body">
     </div>
     <div class="${this.options.className}__tongue">
       ${this._getTongue()}
@@ -178,31 +196,26 @@ class Tooltip {
   private _getTongue() {
     const { size } = this.options.arrow;
     const halfSize = half(size);
+    const { backgroundColor, borderWidth, borderColor } = this.options.tooltip.style;
+    const borderSize = parseInt(borderWidth, 10);
     return `
-    <svg 
-      width = "${size}"
-      height = "${size}"
-      viewBox = "0 0 ${size} ${size}" >
-      <path d="M0 ${halfSize} L${halfSize} ${size} L${size} ${halfSize} Z" />
-      <line stroke - linecap="round"
-        x1 = "0"
-        y1 = "${halfSize}"
-        x2 = "${halfSize}"
-        y2 = "${size}"
-        stroke - width="1" />
-      <line stroke - linecap="round"
-        x1 = "${halfSize}"
-        y1 = "${size}"
-        x2 = "${size}"
-        y2 = "${halfSize}"
-        stroke - width="1" />
+    <svg width="${size + borderSize}" height="${size + borderSize}"
+      viewBox = "0 0 ${size} ${size}">
+      <path d="M0 ${halfSize} L${halfSize} ${size} L${size} ${halfSize}" fill="red"/>
       </svg>`
   }
 
-  private _getStyle() {
-    const { options } = this;
-    const margin = Math.max(options.tooltip.margin, options.arrow.size);
-    return `style="${margin ? 'margin:' + margin + 'px' : ''}"`
+  // <line stroke="${backgroundColor}"
+  // x1="0" y1="${halfSize - 2 * borderSize}" 
+  // x2="${size}" y2="${halfSize - 2 * borderSize}" stroke-width="${borderSize}" />
+
+  // <polyline points="0,${halfSize} ${halfSize},${size} ${size},${halfSize}" 
+  // style="fill:${backgroundColor}; stroke:${borderColor}; transform: translateY(-${half(borderSize)}px); stroke-width:${borderSize}" />
+
+  private _updateStyle(element: HTMLElement, style: any) {
+    Object.keys(style).forEach((property) => {
+      element.style[property] = style[property];
+    })
   }
 
   private _initElement() {
@@ -211,6 +224,7 @@ class Tooltip {
     this.tooltipElement.className = this.className;
     this.tongueElement = this.tooltipElement.querySelector(`.${this.options.className}__tongue`);
     this.tooltipBodyElement = this.tooltipElement.querySelector(`.${this.options.className}__body`);
+    this._updateStyle(this.tooltipBodyElement, this.options.tooltip.style);
   }
 
   private _removeClass(className: string) {
@@ -267,7 +281,7 @@ class Tooltip {
   private _calcTonguePosition() {
     const tooltipBR = getBoundingRect(this.tooltipElement);
     const targetBR = getBoundingRect(this.targetElement);
-    const { margin: marginTooltip } = this.options.tooltip;
+    const marginTooltip = parseInt(this.options.tooltip.style.margin);
     const { marginCorner, size: tongueSize } = this.options.arrow;
     const marginTongue = marginCorner + marginTooltip + half(tongueSize);
     switch (this.tooltipPosition) {
@@ -298,7 +312,7 @@ class Tooltip {
     const tooltipBR = getBoundingRect(this.tooltipElement);
     const targetBR = getBoundingRect(this.targetElement);
     const containerBR = this._getContainerBoundingRect();
-    const offset = this.options.tooltip.margin + this.options.arrow.size + this.options.arrow.marginCorner * 2;
+    const offset = parseInt(this.options.tooltip.style.margin, 10) + this.options.arrow.size + this.options.arrow.marginCorner * 2;
 
     let newPos;
 
@@ -363,7 +377,7 @@ class Tooltip {
   private _getContainerBoundingRect(): BoundingRect {
     const { container, tooltip, arrow } = this.options
     const containerBR = getBoundingRect(document.querySelector(container.selector));
-    const marginInner = Math.max(arrow.size, container.marginInner) - tooltip.margin;
+    const marginInner = Math.max(arrow.size, container.marginInner) - parseInt(tooltip.style.margin);
     const ret = {
       ...containerBR,
       x1: containerBR.x1 + marginInner,
@@ -464,10 +478,15 @@ export class TooltipService {
           selector: '#container',
         },
         tooltip: {
-          margin: 20,
+          style: {
+            margin: '15px',
+            borderRadius: '5px',
+            borderColor: 'red',
+            borderWidth: '4px',
+          }
         },
         arrow: {
-          size: 12,
+          size: 20,
           marginCorner: 6,
         },
         track: true,
@@ -477,28 +496,3 @@ export class TooltipService {
     this.hide = () => this._tooltip.hide();
   }
 }
-
-// const content = `<table>
-// <tbody>
-// <tr>
-//   <td>qwe</td>
-//   <td>qwe1</td>
-//   <td>qwe2</td>
-// </tr>
-// <tr>
-//   <td>qwe</td>
-//   <td>qwe1</td>
-//   <td>qwe2</td>
-// </tr>
-// <tr>
-//   <td>qwe</td>
-//   <td>qwe1</td>
-//   <td>qwe2</td>
-// </tr>
-// <tr>
-//   <td>qwe</td>
-//   <td>qwe1</td>
-//   <td>qwe2</td>
-// </tr>
-// </tbody>
-// </table>`;
